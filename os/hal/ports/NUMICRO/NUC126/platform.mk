@@ -12,13 +12,12 @@ HALCONF := $(strip $(shell cat $(CONFDIR)/halconf.h $(CONFDIR)/halconf_community
 endif
 
 # Drivers compatible with the platform.
-# TODO: Add compatability to these drivers
-#include $(CHIBIOS_CONTRIB)/os/hal/ports/NUMICRO/LLD/GPIOv1/driver.mk
-#include $(CHIBIOS_CONTRIB)/os/hal/ports/NUMICRO/LLD/TIMv1/driver.mk
-#include $(CHIBIOS_CONTRIB)/os/hal/ports/NUMICRO/LLD/USBv1/driver.mk
-#include $(CHIBIOS_CONTRIB)/os/hal/ports/NUMICRO/LLD/SERIALv1/driver.mk
-#include $(CHIBIOS_CONTRIB)/os/hal/ports/NUMICRO/LLD/I2Cv1/driver.mk
-#include $(CHIBIOS_CONTRIB)/os/hal/ports/NUMICRO/LLD/FLASHv1/driver.mk
+include $(CHIBIOS_CONTRIB)/os/hal/ports/NUMICRO/LLD/GPIOv2/driver.mk
+include $(CHIBIOS_CONTRIB)/os/hal/ports/NUMICRO/LLD/TIMv2/driver.mk
+include $(CHIBIOS_CONTRIB)/os/hal/ports/NUMICRO/LLD/USBv2/driver.mk
+#include $(CHIBIOS_CONTRIB)/os/hal/ports/NUMICRO/LLD/SERIALv2/driver.mk
+#include $(CHIBIOS_CONTRIB)/os/hal/ports/NUMICRO/LLD/I2Cv2/driver.mk
+#include $(CHIBIOS_CONTRIB)/os/hal/ports/NUMICRO/LLD/FLASHv2/driver.mk
 
 # Shared variables
 ALLCSRC    += $(PLATFORMSRC)
