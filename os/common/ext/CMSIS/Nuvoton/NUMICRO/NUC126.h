@@ -17450,6 +17450,10 @@ typedef struct
 
 
 //=============================================================================
+// TODO: Custom addition, IDK why it wasn't here :(
+#define UNLOCKREG()        do{*((__IO uint32_t *)(SYS_BASE + 0x100)) = 0x59;*((__IO uint32_t *)(SYS_BASE + 0x100)) = 0x16;*((__IO uint32_t *)(SYS_BASE + 0x100)) = 0x88;}while(*((__IO uint32_t *)(SYS_BASE + 0x100))==0)
+#define LOCKREG()          *((__IO uint32_t *)(SYS_BASE + 0x100)) = 0x00
+
 typedef volatile unsigned char  vu8;
 typedef volatile unsigned long  vu32;
 typedef volatile unsigned short vu16;

@@ -34,7 +34,7 @@
 #define FREQ_100MHZ 100000000
 #define FREQ_200MHZ 200000000
 
-#define CLK_CLKDIV_HCLK(x) (((x)-1) << CLK_CLKDIV_HCLK_N_Pos)
+#define CLK_CLKDIV0_HCLK(x)     (((x)-1) << CLK_CLKDIV0_HCLKDIV_Pos) /*!< CLKDIV0 Setting for HCLK clock divider. It could be 1~16 */
 
 /*===========================================================================*/
 /* Driver exported variables.                                                */
@@ -48,12 +48,12 @@ _Bool clock_initialized = FALSE;
 
 uint32_t SystemCoreClock  = __HSI;              /*!< System Clock Frequency (Core Clock) */
 uint32_t CyclesPerUs      = (__HSI / 1000000);  /*!< Cycles per micro second             */
-#if NUC123_PLL_ENABLED
+#if NUC126_PLL_ENABLED
 uint32_t PllClock         = __HSI;              /*!< PLL Output Clock Frequency          */
 #endif
 const uint32_t gau32ClkSrcTbl[] = {__HXT, __LXT, __HSI, __LIRC, __HIRC48, 0UL, 0UL, __HIRC};
 
-#if (NUC123_CONFIG_ENABLED == TRUE)
+#if (NUC126_CONFIG_ENABLED == TRUE)
 
 static volatile const uint32_t config0 __attribute__((used, unused, section(".nuc126_config0"))) = NUC126_CONFIG0;
 static volatile const uint32_t config1 __attribute__((used, unused, section(".nuc126_config1"))) = NUC126_CONFIG1;
@@ -63,51 +63,6 @@ static volatile const uint32_t config1 __attribute__((used, unused, section(".nu
 /*===========================================================================*/
 /* Driver local functions.                                                   */
 /*===========================================================================*/
-static void SystemCoreClockUpdate(void);
-static void CLK_EnableXtalRC(uint32_t u32ClkMask)
-static uint32_t CLK_WaitClockReady(uint32_t u32ClkMask);
-static void CLK_SetHCLK(uint32_t u32ClkSrc, uint32_t u32ClkDiv);
-
-#if NUC123_PLL_ENABLED
-static inline uint32_t get_pll_clock_freq(void);
-static uint32_t enable_pll(uint32_t pllSrc, uint32_t pllFreq);
-static uint32_t set_core_clock(uint32_t clkCore);
-#endif
-
-static void SystemCoreClockUpdate(void)
-{
-    uint32_t u32Freq, u32ClkSrc;
-    uint32_t u32HclkDiv;
-
-    u32ClkSrc = CLK->CLKSEL0 & CLK_CLKSEL0_HCLKSEL_Msk;
-
-#if NUC123_PLL_ENABLED
-    /* Update PLL Clock */
-    PllClock = CLK_GetPLLClockFreq();
-
-    if(u32ClkSrc != CLK_CLKSEL0_HCLKSEL_PLL)
-    {
-        /* Use the clock sources directly */
-        u32Freq = gau32ClkSrcTbl[u32ClkSrc];
-    }
-    else
-    {
-#if NUC123_PLL_ENABLED
-        /* Use PLL clock */
-        u32Freq = PllClock;
-#else
-	// Uh oh...
-	u32Freq = 0
-#endif
-    }
-
-    u32HclkDiv = (CLK->CLKDIV0 & CLK_CLKDIV0_HCLKDIV_Msk) + 1;
-
-    /* Update System Core Clock */
-    SystemCoreClock = u32Freq / u32HclkDiv;
-
-    CyclesPerUs = (SystemCoreClock + 500000) / 1000000;
-}
 
 /**
   * @brief      Enable clock source
@@ -159,12 +114,12 @@ static uint32_t CLK_WaitClockReady(uint32_t u32ClkMask)
 /**
   * @brief      Set HCLK clock source and HCLK clock divider
   * @param[in]  u32ClkSrc is HCLK clock source. Including :
-  *             - \ref CLK_CLKSEL0_HCLKSEL_HXT
-  *             - \ref CLK_CLKSEL0_HCLKSEL_LXT
-  *             - \ref CLK_CLKSEL0_HCLKSEL_PLL
-  *             - \ref CLK_CLKSEL0_HCLKSEL_LIRC
-  *             - \ref CLK_CLKSEL0_HCLKSEL_HIRC48
-  *             - \ref CLK_CLKSEL0_HCLKSEL_HIRC
+  *             - \ref NUC126_HCLKSRC_HSE
+  *             - \ref NUC126_HCLKSRC_LSE
+  *             - \ref NUC126_HCLKSRC_PLL
+  *             - \ref NUC126_HCLKSRC_LSI
+  *             - \ref NUC126_HCLKSRC_HSI48
+  *             - \ref NUC126_HCLKSRC_HSI
   * @param[in]  u32ClkDiv is HCLK clock divider. Including :
   *             - \ref CLK_CLKDIV0_HCLK(x)
   * @return     None
@@ -181,7 +136,7 @@ static void CLK_SetHCLK(uint32_t u32ClkSrc, uint32_t u32ClkDiv)
     /* Switch to HIRC for Safe. Avoid HCLK too high when applying new divider. */
     CLK->PWRCTL |= CLK_PWRCTL_HIRCEN_Msk;
     CLK_WaitClockReady(CLK_STATUS_HIRCSTB_Msk);
-    CLK->CLKSEL0 = (CLK->CLKSEL0 & (~CLK_CLKSEL0_HCLKSEL_Msk)) | CLK_CLKSEL0_HCLKSEL_HIRC;
+    CLK->CLKSEL0 = (CLK->CLKSEL0 & (~CLK_CLKSEL0_HCLKSEL_Msk)) | NUC126_HCLKSRC_HSI;
 
     /* Apply new Divider */
     CLK->CLKDIV0 = (CLK->CLKDIV0 & (~CLK_CLKDIV0_HCLKDIV_Msk)) | u32ClkDiv;
@@ -198,7 +153,7 @@ static void CLK_SetHCLK(uint32_t u32ClkSrc, uint32_t u32ClkDiv)
 }
 
 // TODO: update all PLL related functions
-#if NUC123_PLL_ENABLED
+#if NUC126_PLL_ENABLED
 /**
   * @brief      Get PLL clock frequency
   * @param      None
@@ -257,7 +212,7 @@ static uint32_t enable_pll(uint32_t pllSrc, uint32_t pllFreq)
   switch (pllSrc) {
   case NUC123_PLLSRC_HSE:
     /* Use HXT clock */
-    CLK->PWRCON |= CLK_PWRCON_XTL12M_EN_Msk;
+    CLK->PWRCTL |= CLK_PWRCTL_XTL12M_EN_Msk;
 
     /* Wait for stable HXT */
     CLK_WaitClockReady(CLK_CLKSTATUS_XTL12M_STB_Msk);
@@ -265,7 +220,7 @@ static uint32_t enable_pll(uint32_t pllSrc, uint32_t pllFreq)
     break;
   case NUC123_PLLSRC_HSI:
     /* Use HIRC clock */
-    CLK->PWRCON |= CLK_PWRCON_OSC22M_EN_Msk;
+    CLK->PWRCTL |= CLK_PWRCTL_OSC22M_EN_Msk;
 
     /* Wait for stable HIRC */
     CLK_WaitClockReady(CLK_CLKSTATUS_OSC22M_STB_Msk);
@@ -409,7 +364,7 @@ static uint32_t set_core_clock(uint32_t clkCore)
   stableHIRC = CLK->CLKSTATUS & CLK_CLKSTATUS_OSC22M_STB_Msk;
 
   /* Setup __HIRC */
-  CLK->PWRCON |= CLK_PWRCON_OSC22M_EN_Msk;
+  CLK->PWRCTL |= CLK_PWRCTL_OSC22M_EN_Msk;
 
   CLK_WaitClockReady(CLK_CLKSTATUS_OSC22M_STB_Msk);
 
@@ -434,13 +389,13 @@ static uint32_t set_core_clock(uint32_t clkCore)
 
   /* Disable HIRC if HIRC was disabled before we started */
   if (stableHIRC == 0) {
-    CLK->PWRCON &= ~CLK_PWRCON_OSC22M_EN_Msk;
+    CLK->PWRCTL &= ~CLK_PWRCTL_OSC22M_EN_Msk;
   }
 
   /* Return actual HCLK frequency is PLL frequency divide 2 */
   return (clkCore >> 1);
 }
-#endif // NUC123_PLL_ENABLED
+#endif // NUC126_PLL_ENABLED
 
 /*===========================================================================*/
 /* Driver interrupt handlers.                                                */
@@ -449,6 +404,42 @@ static uint32_t set_core_clock(uint32_t clkCore)
 /*===========================================================================*/
 /* Driver exported functions.                                                */
 /*===========================================================================*/
+
+void SystemCoreClockUpdate(void)
+{
+    uint32_t u32Freq, u32ClkSrc;
+    uint32_t u32HclkDiv;
+
+    u32ClkSrc = CLK->CLKSEL0 & CLK_CLKSEL0_HCLKSEL_Msk;
+
+#if NUC126_PLL_ENABLED
+    /* Update PLL Clock */
+    PllClock = CLK_GetPLLClockFreq();
+#endif
+
+    if(u32ClkSrc != NUC126_HCLKSRC_PLL)
+    {
+        /* Use the clock sources directly */
+        u32Freq = gau32ClkSrcTbl[u32ClkSrc];
+    }
+    else
+    {
+#if NUC126_PLL_ENABLED
+        /* Use PLL clock */
+        u32Freq = PllClock;
+#else
+        // Uh oh...
+	      u32Freq = 0;
+#endif
+    }
+
+    u32HclkDiv = (CLK->CLKDIV0 & CLK_CLKDIV0_HCLKDIV_Msk) + 1;
+
+    /* Update System Core Clock */
+    SystemCoreClock = u32Freq / u32HclkDiv;
+
+    CyclesPerUs = (SystemCoreClock + 500000) / 1000000;
+}
 
 /**
  * @brief   Low level HAL driver initialization.
@@ -470,31 +461,44 @@ void NUC126_clock_init(void)
   /* Always initialize HSI and go from there, things can change later */
 
   /* Enable HSI */
-    /* Enable Internal RC 22.1184 MHz clock */
-    CLK_EnableXtalRC(CLK_PWRCTL_HIRCEN_Msk);
+  /* Enable Internal RC 22.1184 MHz clock */
+  CLK_EnableXtalRC(CLK_PWRCTL_HIRCEN_Msk);
 
-    /* Waiting for Internal RC clock ready */
-    CLK_WaitClockReady(CLK_STATUS_HIRCSTB_Msk);
+  /* Waiting for Internal RC clock ready */
+  CLK_WaitClockReady(CLK_STATUS_HIRCSTB_Msk);
 
-    /* Switch HCLK clock source to Internal RC and HCLK source divide 1 */
-    CLK_SetHCLK(CLK_CLKSEL0_HCLKSEL_HIRC, CLK_CLKDIV0_HCLK(1));
+  /* Switch HCLK clock source to Internal RC and HCLK source divide 1 */
+  CLK_SetHCLK(NUC126_HCLKSRC_HSI, CLK_CLKDIV0_HCLK(1));
 
+#if NUC126_HSI48_ENABLED
+  /* Enable Internal RC 48MHz clock */
+  CLK_EnableXtalRC(CLK_PWRCTL_HIRC48EN_Msk);
 
-    // TODO: update clock setting
+  /* Waiting for Internal RC clock ready */
+  CLK_WaitClockReady(CLK_STATUS_HIRC48STB_Msk);
+
+  // TODO NOT do this by default??
+  /* Switch HCLK clock source to Internal RC and HCLK source divide 1 */
+  CLK_SetHCLK(NUC126_HCLKSRC_HSI48, CLK_CLKDIV0_HCLK(1));
+#endif
+
 #if NUC126_HSE_ENABLED
+  // TODO: update clock setting
   /* SYS->GPF_MFP |= (SYS_GPF_MFP_PF0_XT1_OUT | SYS_GPF_MFP_PF1_XT1_IN); */
   SYS->GPF_MFP |= (SYS_GPF_MFP_GPF_MFP0_Msk | SYS_GPF_MFP_GPF_MFP1_Msk);
 
-  CLK->PWRCON |= CLK_PWRCON_XTL12M_EN_Msk;
+  CLK->PWRCTL |= CLK_PWRCTL_XTL12M_EN_Msk;
   CLK_WaitClockReady(CLK_CLKSTATUS_XTL12M_STB_Msk);
 #endif /* NUC126_HSE_ENABLED */
 
 #if NUC126_LSI_ENABLED
-  CLK->PWRCON |= CLK_PWRCON_IRC10K_EN_Msk;
+  // TODO: update clock setting
+  CLK->PWRCTL |= CLK_PWRCTL_IRC10K_EN_Msk;
   CLK_WaitClockReady(CLK_CLKSTATUS_IRC10K_STB_Msk);
 #endif /* NUC126_LSI_ENABLED */
 
 #if NUC126_PLL_ENABLED
+  // TODO: update clock setting
   set_core_clock(NUC126_HCLK);
 #endif /* NUC126_PLL_ENABLED */
 

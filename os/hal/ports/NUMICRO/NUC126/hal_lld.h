@@ -110,6 +110,7 @@
  * @{
  */
 #define NUC126_HSICLK            __HIRC       /**< High speed internal clock. */
+#define NUC126_HSI48CLK          __HIRC48     /**< High speed internal clock. */
 #define NUC126_LSICLK            __LIRC       /**< Low speed internal clock.  */
 /** @} */
 
@@ -175,16 +176,18 @@
 #define NUC126_LSI_ENABLED                   FALSE
 #endif
 
-// TODO: add HSI48?
-
-// TODO: enable clocks by default
+/**
+ * @brief   Enables or disables the HSI48 clock source.
+ */
+#if !defined(NUC126_HSI48_ENABLED) || defined(__DOXYGEN__)
+#define NUC126_HSI48_ENABLED                   FALSE
+#endif
 
 /**
  * @brief   Enables or disables the HSE clock source.
  */
 #if !defined(NUC126_HSE_ENABLED) || defined(__DOXYGEN__)
-#define NUC126_HSE_ENABLED                   FALSE
-//#define NUC126_HSE_ENABLED                   TRUE
+#define NUC126_HSE_ENABLED                   TRUE
 #endif
 
 // TODO: add LSE?
@@ -193,8 +196,7 @@
  * @brief   Enables or disables PLL
  */
 #if !defined(NUC126_PLL_ENABLED) || defined(__DOXYGEN__)
-#define NUC126_PLL_ENABLED FALSE
-//#define NUC126_PLL_ENABLED TRUE
+#define NUC126_PLL_ENABLED TRUE
 #endif
 
 /**
@@ -269,7 +271,6 @@
 #endif
 #else
 // TODO IDK what these do but there was a CGPFMFP ref so I added an error :(
-#error "HSE disabled not currently supported on NUC126"
 #endif
 
 #define NUC126_PLLCLK (NUC126_HCLK * 2)
