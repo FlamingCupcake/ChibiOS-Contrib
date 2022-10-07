@@ -279,7 +279,7 @@
 * Persistant configuration settings.
 */
 
-#if (NUC123_CONFIG_ENABLED == TRUE)
+#if (NUC126_CONFIG_ENABLED == TRUE)
 
 #if (NUC126_CONFIG_DATAFLASH_ENABLED == TRUE)
 /* DFEN = 0 */
