@@ -14,7 +14,7 @@ endif
 # Drivers compatible with the platform.
 include $(CHIBIOS_CONTRIB)/os/hal/ports/NUMICRO/LLD/GPIOv2/driver.mk
 include $(CHIBIOS_CONTRIB)/os/hal/ports/NUMICRO/LLD/TIMv2/driver.mk
-include $(CHIBIOS_CONTRIB)/os/hal/ports/NUMICRO/LLD/USBv2/driver.mk
+#include $(CHIBIOS_CONTRIB)/os/hal/ports/NUMICRO/LLD/USBv2/driver.mk
 #include $(CHIBIOS_CONTRIB)/os/hal/ports/NUMICRO/LLD/SERIALv2/driver.mk
 #include $(CHIBIOS_CONTRIB)/os/hal/ports/NUMICRO/LLD/I2Cv2/driver.mk
 #include $(CHIBIOS_CONTRIB)/os/hal/ports/NUMICRO/LLD/FLASHv2/driver.mk
