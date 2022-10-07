@@ -25,12 +25,13 @@
 
 #include "hal.h"
 
+// TODO look at removing workaround code
 /*
  * TODO:
  * As it stands, the behavior of hardware endpoint 6 (which corresponds to the
  * OUT direction of logical endpoint 3) may malfunction if hardware endpoint 5
  * (the IN direction of logical endpoint 2) is in use, due to a flaw in the
- * hardware (for more info, see the errata ER_6000_NUC126AN_EN_Rev.1.04.pdf).
+ * hardware (for more info, see the errata ER_6000_NUC123AN_EN_Rev.1.04.pdf).
  *
  * The only way to ensure both hardware endpoints function properly is to set
  * them both as OUT. Under the current alternating scheme, this would be tricky.
@@ -151,7 +152,7 @@ static uint32_t sram_free_dword_offset = 1UL;
 #define LOGICAL_EPN(hwepn) ((((hwepn) + 3) / 2) % 4)
 #else
 #if defined(NUC126xxxxx)
-// without workaround we use EP0 EP1 EP2 EP3 EP4 and EP7 for NUC126(AN)
+// without workaround we use EP0 EP1 EP2 EP3 EP4 and EP7 for NUC123(AN)
 #define _HW_OUT_EPN(lepn)   (2 * (lepn))
 #define _HW_IN_EPN(lepn)    (2 * (((lepn)+3)%4) + 1)
 #define LOGICAL_EPN(hwepn) (((hwepn)+1)%8 / 2)

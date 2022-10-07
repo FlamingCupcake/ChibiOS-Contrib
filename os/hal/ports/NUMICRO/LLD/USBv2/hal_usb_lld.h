@@ -36,6 +36,7 @@
  * @brief   Maximum endpoint address.
  * @details This value does not include the endpoint 0 which is always present.
 */
+// TODO look at removing workaround code
 #if defined(NUC126xxxxx)
 #if NUC126_USB_WORKAROUND
 #define USB_MAX_ENDPOINTS 3
