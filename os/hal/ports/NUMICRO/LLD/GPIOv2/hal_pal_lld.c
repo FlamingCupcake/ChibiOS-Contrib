@@ -111,6 +111,8 @@ void _pal_lld_init(const PALConfig *config) {
   GPIOA->INTTYPE = config->PAData.INTTYPE;
   GPIOA->INTEN = config->PAData.INTEN;
   GPIOA->INTSRC = config->PAData.INTSRC;
+  GPIOA->SMTEN = config->PAData.SMTEN;
+  GPIOA->SLEWCTL = config->PAData.SLEWCTL;
   GPIOA->DOUT = config->PAData.DOUT;
 
   GPIOB->MODE = config->PBData.MODE;
@@ -120,6 +122,8 @@ void _pal_lld_init(const PALConfig *config) {
   GPIOB->INTTYPE = config->PBData.INTTYPE;
   GPIOB->INTEN = config->PBData.INTEN;
   GPIOB->INTSRC = config->PBData.INTSRC;
+  GPIOB->SMTEN = config->PBData.SMTEN;
+  GPIOB->SLEWCTL = config->PBData.SLEWCTL;
   GPIOB->DOUT = config->PBData.DOUT;
 
   GPIOC->MODE = config->PCData.MODE;
@@ -129,6 +133,8 @@ void _pal_lld_init(const PALConfig *config) {
   GPIOC->INTTYPE = config->PCData.INTTYPE;
   GPIOC->INTEN = config->PCData.INTEN;
   GPIOC->INTSRC = config->PCData.INTSRC;
+  GPIOC->SMTEN = config->PCData.SMTEN;
+  GPIOC->SLEWCTL = config->PCData.SLEWCTL;
   GPIOC->DOUT = config->PCData.DOUT;
 
   GPIOD->MODE = config->PDData.MODE;
@@ -138,9 +144,21 @@ void _pal_lld_init(const PALConfig *config) {
   GPIOD->INTTYPE = config->PDData.INTTYPE;
   GPIOD->INTEN = config->PDData.INTEN;
   GPIOD->INTSRC = config->PDData.INTSRC;
+  GPIOD->SMTEN = config->PDData.SMTEN;
+  GPIOD->SLEWCTL = config->PDData.SLEWCTL;
   GPIOD->DOUT = config->PDData.DOUT;
 
-  //TODO add GPIOE
+  GPIOE->MODE = config->PEData.MODE;
+  GPIOE->DINOFF = config->PEData.DINOFF;
+  GPIOE->DATMSK = config->PEData.DATMSK;
+  GPIOE->DBEN = config->PEData.DBEN;
+  GPIOE->INTTYPE = config->PEData.INTTYPE;
+  GPIOE->INTEN = config->PEData.INTEN;
+  GPIOE->INTSRC = config->PEData.INTSRC;
+  GPIOE->SMTEN = config->PEData.SMTEN;
+  GPIOE->SLEWCTL = config->PEData.SLEWCTL;
+  GPIOE->DRVCTL = config->PEData.DRVCTL;
+  GPIOE->DOUT = config->PEData.DOUT;
 
   GPIOF->MODE = config->PFData.MODE;
   GPIOF->DINOFF = config->PFData.DINOFF;
@@ -149,6 +167,8 @@ void _pal_lld_init(const PALConfig *config) {
   GPIOF->INTTYPE = config->PFData.INTTYPE;
   GPIOF->INTEN = config->PFData.INTEN;
   GPIOF->INTSRC = config->PFData.INTSRC;
+  GPIOF->SMTEN = config->PFData.SMTEN;
+  GPIOF->SLEWCTL = config->PFData.SLEWCTL;
   GPIOF->DOUT = config->PFData.DOUT;
 
   /* Set DeBounce conditions */
