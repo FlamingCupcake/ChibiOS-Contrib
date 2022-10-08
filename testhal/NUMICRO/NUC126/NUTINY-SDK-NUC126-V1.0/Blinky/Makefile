@@ -100,10 +100,9 @@ include $(CHIBIOS)/os/license/license.mk
 # Startup files.
 include $(CHIBIOS_CONTRIB)/os/common/startup/ARMCMx/compilers/GCC/mk/startup_NUC126.mk
 # HAL-OSAL files (optional).
-include $(CHIBIOS_CONTRIB)/os/hal/hal.mk
+include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS_CONTRIB)/os/hal/ports/NUMICRO/NUC126/platform.mk
 include $(CHIBIOS_CONTRIB)/os/hal/boards/NUTINY-SDK-NUC126-V1.0/board.mk
-# TODO not sure about this one, it was something else before
 include $(CHIBIOS)/os/hal/osal/rt-nil/osal.mk
 # RTOS files (optional).
 include $(CHIBIOS)/os/rt/rt.mk
@@ -111,7 +110,9 @@ include $(CHIBIOS)/os/common/ports/ARMv6-M/compilers/GCC/mk/port.mk
 # Auto-build files in ./source recursively.
 include $(CHIBIOS)/tools/mk/autobuild.mk
 # Other files (optional).
-# TODO any necessary?
+#include $(CHIBIOS)/os/test/test.mk
+#include $(CHIBIOS)/test/rt/rt_test.mk
+#include $(CHIBIOS)/test/oslib/oslib_test.mk
 
 # Define linker script file here
 LDSCRIPT= $(STARTUPLD_CONTRIB)/NUC126xG4xx.ld
