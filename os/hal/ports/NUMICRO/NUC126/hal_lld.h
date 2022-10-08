@@ -144,6 +144,9 @@
 #define NUC126_CONFIG0_LOCK_Pos 1
 #define NUC126_CONFIG0_LOCK_Msk (1 << NUC126_CONFIG0_LOCK_Pos)
 
+#define NUC126_CONFIG0_CFGXT1_Pos 27
+#define NUC126_CONFIG0_CFGXT1_Msk (1 << NUC126_CONFIG0_CFGXT1_Pos)
+
 /** @} */
 
 /*===========================================================================*/
@@ -180,7 +183,7 @@
  * @brief   Enables or disables the HSI48 clock source.
  */
 #if !defined(NUC126_HSI48_ENABLED) || defined(__DOXYGEN__)
-#define NUC126_HSI48_ENABLED                   FALSE
+#define NUC126_HSI48_ENABLED                 FALSE
 #endif
 
 /**
@@ -190,7 +193,12 @@
 #define NUC126_HSE_ENABLED                   TRUE
 #endif
 
-// TODO: add LSE?
+/**
+ * @brief   Enables or disables the LSE clock source.
+ */
+#if !defined(NUC126_LSE_ENABLED) || defined(__DOXYGEN__)
+#define NUC126_LSE_ENABLED                   TRUE
+#endif
 
 /**
  * @brief   Enables or disables PLL
@@ -232,16 +240,11 @@
 #define NUC126_CONFIG_DATAFLASH_ENABLED TRUE
 #endif
 
-// TODO: change number? use configuration?
 /**
  * @brief   Sets the data flash size. This is ignored if data flash is disabled.
  */
-#if (!defined(NUC126_CONFIG_DATAFLASH_SIZE)) || defined(__DOXYGEN__)
-#if (NUC126_CONFIG_DATAFLASH_ENABLED == TRUE)
+#if !defined(NUC126_CONFIG_DATAFLASH_SIZE) || defined(__DOXYGEN__)
 #define NUC126_CONFIG_DATAFLASH_SIZE 4096
-#else
-#define NUC126_CONFIG_DATAFLASH_SIZE 0
-#endif /* NUC126_CONFIG_DATAFLASH_ENABLED == TRUE */
 #endif
 
 #endif /* NUC126_CONFIG_ENABLED == TRUE */
@@ -269,8 +272,9 @@
 #elif (NUC126_HSECLK < NUC126_HSECLK_MIN) || (NUC126_HSECLK > NUC126_HSECLK_MAX)
 #error "NUC126_HSECLK outside acceptable range (NUC126_HSECLK_MIN...NUC126_HSECLK_MAX)"
 #endif
+#define NUC126_CONFIG0_HSE_PINS 0
 #else
-// TODO IDK what these do but there was a CGPFMFP ref so I added an error :(
+#define NUC126_CONFIG0_HSE_PINS NUC126_CONFIG0_CFGXT1_Msk
 #endif
 
 #define NUC126_PLLCLK (NUC126_HCLK * 2)
@@ -294,7 +298,7 @@
 #endif /* NUC126_CONFIG_DATAFLASH_ENABLED == TRUE/FALSE */
 
 #define NUC126_CONFIG0                                                      \
-  0xFFFFFFFFUL & (~NUC126_CONFIG0_DATAFLASH)
+  0xFFFFFFFFUL & (~NUC126_CONFIG0_DATAFLASH) & (~NUC126_CONFIG0_HSE_PINS)
 #define NUC126_CONFIG1 NUC126_DFBADDR
 
 #else /* NUC126_CONFIG_ENABLED == FALSE */
@@ -304,9 +308,10 @@
     "Defining NUC126_CONFIG_DATAFLASH_ENABLED requires NUC126_CONFIG_ENABLED to be TRUE"
 #endif
 
-// TODO why is dataflash size check necessary in the original?
-//      we only care about size if dataflush is enabled
-//      and if it is enabled then we check that config is enabled
+#if defined(NUC126_CONFIG_DATAFLASH_SIZE)
+#error                                                                      \
+    "Defining NUC126_CONFIG_DATAFLASH_SIZE requires NUC126_CONFIG_ENABLED to be TRUE"
+#endif
 
 #endif /* NUC126_CONFIG_ENABLED == TRUE/FALSE */
 
@@ -327,9 +332,8 @@
 
 /* Various helpers */
 #include "NUC126.h"
-// TODO: port ISR and registry
-//#include "nuc126_isr.h"
-//#include "nuc126_registry.h"
+#include "nuc126_isr.h"
+#include "nuc126_registry.h"
 #include "nvic.h"
 
 #ifdef __cplusplus

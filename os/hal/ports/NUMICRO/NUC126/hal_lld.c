@@ -36,6 +36,20 @@
 
 #define CLK_CLKDIV0_HCLK(x)     (((x)-1) << CLK_CLKDIV0_HCLKDIV_Pos) /*!< CLKDIV0 Setting for HCLK clock divider. It could be 1~16 */
 
+//  PLLCTL constant definitions. PLL = FIN * NF / NR / NO
+
+#define CLK_PLLCTL_NF(x)        ((x)-2)         /*!< x must be constant and 2 <= x <= 513. 200MHz < FIN*NF/NR < 500MHz. (FIN*NF/NR > 250MHz is preferred.) */
+#define CLK_PLLCTL_NR(x)        (((x)-2)<<9)    /*!< x must be constant and 2 <= x <= 33.  1.6MHz < FIN/NR < 16MHz */
+#define CLK_PLLCTL_NO(x)        ((x-1)<<14)        /*!< x must be either 1, 2 or 4. */
+
+#define CLK_PLLCTL(src, nr, nf, no)     \
+        (src | CLK_PLLCTL_NR(nr) |      \
+         CLK_PLLCTL_NF(nf) | CLK_PLLCTL_NO(no))
+
+#define CLK_PLLCTL_72MHz_HXT    CLK_PLLCTL(NUC126_PLLSRC_HSE, 4, 48, 2) /*!< Predefined PLLCTL setting for 72MHz PLL output with HXT(12MHz X'tal) */
+#define CLK_PLLCTL_144MHz_HXT    CLK_PLLCTL(NUC126_PLLSRC_HSE, 4, 48, 1) /*!< Predefined PLLCTL setting for 144MHz PLL output with HXT(12MHz X'tal) */
+#define CLK_PLLCTL_72MHz_HIRC    CLK_PLLCTL(NUC126_PLLSRC_HSE, 8, 52, 2) /*!< Predefined PLLCTL setting for 71.8848MHz PLL output with HIRC(22.1184MHz IRC) */
+
 /*===========================================================================*/
 /* Driver exported variables.                                                */
 /*===========================================================================*/
@@ -152,7 +166,6 @@ static void CLK_SetHCLK(uint32_t u32ClkSrc, uint32_t u32ClkDiv)
         CLK->PWRCTL &= ~CLK_PWRCTL_HIRCEN_Msk;
 }
 
-// TODO: update all PLL related functions
 #if NUC126_PLL_ENABLED
 /**
   * @brief      Get PLL clock frequency
@@ -160,27 +173,27 @@ static void CLK_SetHCLK(uint32_t u32ClkSrc, uint32_t u32ClkDiv)
   * @return     PLL frequency
   * @details    This function get PLL frequency. The frequency unit is Hz.
   */
-static inline uint32_t get_pll_clock_freq(void)
+static inline uint32_t CLK_GetPLLClockFreq(void)
 {
   uint32_t PllReg;
   uint32_t pllFIN, pllNF, pllNR, pllNO;
 
-  PllReg = CLK->PLLCON;
+  PllReg = CLK->PLLCTL;
 
-  if (PllReg & (CLK_PLLCON_PD_Msk | CLK_PLLCON_OE_Msk)) {
+  if (PllReg & (CLK_PLLCTL_PD_Msk | CLK_PLLCTL_OE_Msk)) {
     PllClock = 0; /* PLL is in power down mode or fix low */
   } else {
 
-    if (PllReg & NUC123_PLLSRC_HSI) {
+    if (PllReg & NUC126_PLLSRC_HSI) {
       pllFIN = __HIRC; /* Use HXT for PLL clock */
     } else {
-      pllFIN = NUC123_HSECLK; /* Use HXT for PLL clock */
+      pllFIN = NUC126_HSECLK; /* Use HXT for PLL clock */
     }
 
-    if (PllReg & CLK_PLLCON_BP_Msk) {
+    if (PllReg & CLK_PLLCTL_BP_Msk) {
       PllClock = pllFIN;
     } else {
-      switch (((PllReg & CLK_PLLCON_OUT_DV_Msk) >> CLK_PLLCON_OUT_DV_Pos)) {
+      switch (((PllReg & CLK_PLLCTL_OUTDIV_Msk) >> CLK_PLLCTL_OUTDIV_Pos)) {
       case 0: /* OUT_DIV == 00 : NO = 1 */
         pllNO = 1;
         break;
@@ -192,8 +205,8 @@ static inline uint32_t get_pll_clock_freq(void)
         break;
       }
 
-      pllNF = ((PllReg & CLK_PLLCON_FB_DV_Msk) >> CLK_PLLCON_FB_DV_Pos) + 2;
-      pllNR = ((PllReg & CLK_PLLCON_IN_DV_Msk) >> CLK_PLLCON_IN_DV_Pos) + 2;
+      pllNF = ((PllReg & CLK_PLLCTL_FBDIV_Msk) >> CLK_PLLCTL_FBDIV_Pos) + 2;
+      pllNR = ((PllReg & CLK_PLLCTL_INDIV_Msk) >> CLK_PLLCTL_INDIV_Pos) + 2;
 
       /* Shift to avoid overflow condition */
       PllClock = (((pllFIN >> 2) * pllNF) / (pllNR * pllNO) << 2);
@@ -203,35 +216,45 @@ static inline uint32_t get_pll_clock_freq(void)
   return PllClock;
 }
 
-static uint32_t enable_pll(uint32_t pllSrc, uint32_t pllFreq)
+/**
+  * @brief      Set PLL frequency
+  * @param[in]  pllSrc is PLL clock source. Including :
+  *             - \ref NUC126_PLLSRC_HSE
+  *             - \ref NUC126_PLLSRC_HSI
+  * @param[in]  pllFreq is PLL frequency. The range of pllFreq is 25 MHz ~ 200 MHz.
+  * @return     PLL frequency
+  * @details    This function is used to configure PLLCTL register to set specified PLL frequency. \n
+  *             The register write-protection function should be disabled before using this function.
+  */
+uint32_t CLK_EnablePLL(uint32_t pllSrc, uint32_t pllFreq)
 {
-  /* Disable PLL first to avoid unstable when setting PLL. */
-  CLK->PLLCON = CLK_PLLCON_PD_Msk;
+    /* Disable PLL first to avoid unstable when setting PLL */
+    CLK->PLLCTL |= CLK_PLLCTL_PD_Msk;
 
-  /* Check and setup correct clock source */
-  switch (pllSrc) {
-  case NUC123_PLLSRC_HSE:
-    /* Use HXT clock */
-    CLK->PWRCTL |= CLK_PWRCTL_XTL12M_EN_Msk;
+    /* Check and setup correct clock source */
+    switch (pllSrc) {
+    case NUC126_PLLSRC_HSE:
+        /* Enable HXT clock */
+        CLK->PWRCTL |= CLK_PWRCTL_HXTEN_Msk;
 
-    /* Wait for stable HXT */
-    CLK_WaitClockReady(CLK_CLKSTATUS_XTL12M_STB_Msk);
+        /* Wait for HXT clock ready */
+        CLK_WaitClockReady(CLK_STATUS_HXTSTB_Msk);
 
-    break;
-  case NUC123_PLLSRC_HSI:
-    /* Use HIRC clock */
-    CLK->PWRCTL |= CLK_PWRCTL_OSC22M_EN_Msk;
+        break;
+    case NUC126_PLLSRC_HSI:
+        /* Enable HIRC clock */
+        CLK->PWRCTL |= CLK_PWRCTL_HIRCEN_Msk;
 
-    /* Wait for stable HIRC */
-    CLK_WaitClockReady(CLK_CLKSTATUS_OSC22M_STB_Msk);
+        /* Wait for HIRC clock ready */
+        CLK_WaitClockReady(CLK_STATUS_HIRCSTB_Msk);
 
-    break;
-  }
+        break;
+    }
 
   /**
      * Calculate best PLL variables from requested frequency
      *
-     * See NUC123 Technical Reference Manual 5.4.8 PLL Control Register Description, page 124
+     * See NUC126 Technical Reference Manual, PLL Control Register Description
      *
      *                NF     1
      * FOUT = FIN  x  --  x  --
@@ -244,48 +267,38 @@ static uint32_t enable_pll(uint32_t pllSrc, uint32_t pllFreq)
   uint32_t clkCalc = 0;
 
   /* Set "NO" for requested frequency */
-  /* We're using "NO" first to set the PLLCON - so make it "NO" - 1; */
   if (pllFreq >= FREQ_25MHZ && pllFreq <= FREQ_50MHZ) {
     /* Low frequency - use full variable headroom */
     pllFreq <<= 2;
-    NO = 3;
+    NO = 4;
   } else if (pllFreq > FREQ_50MHZ && pllFreq <= FREQ_100MHZ) {
     /* Medium frequency - use full variable headroom */
     pllFreq <<= 1;
-    NO = 1;
+    NO = 2;
   } else if (pllFreq > FREQ_100MHZ && pllFreq <= FREQ_200MHZ) {
     /* High frequency - full variable headroom already used */
-    NO = 0;
+    NO = 1;
   } else {
-    /* Frequency out of range - use default PLL settings
-         *
-         * See NUC123 Technical Reference Manual PLL COntrol Register Description, page 124
-         * The default value: 0xC22E
-         *   FIN = 12 MHz
-         *   NR = (1+2) = 3
-         *   NF = (46+2) = 48
-         *   NO = 4
-         *   FOUT = 12/4 x 48 x 1/3 = 48 MHz
-         */
-    if (pllSrc == NUC123_PLLSRC_HSE) {
-      CLK->PLLCON = 0xC22E;
-    } else {
-      CLK->PLLCON = 0xD66F;
-    }
+    /* Frequency out of range - use default PLL settings */
+    /* Apply default PLL setting and return */
+    if(pllSrc == NUC126_PLLSRC_HSE)
+        CLK->PLLCTL = CLK_PLLCTL_72MHz_HXT; /* 72MHz */
+    else
+        CLK->PLLCTL = CLK_PLLCTL_72MHz_HIRC; /* 71.8848MHz */
 
-    /* Wait for stable PLL clock */
-    CLK_WaitClockReady(CLK_CLKSTATUS_PLL_STB_Msk);
+    /* Wait for PLL clock stable */
+    CLK_WaitClockReady(CLK_STATUS_PLLSTB_Msk);
 
-    return get_pll_clock_freq();
+    return CLK_GetPLLClockFreq();
   }
 
   /* Setup "NR" and clkCalc */
   switch (pllSrc) {
-  case NUC123_PLLSRC_HSE:
+  case NUC126_PLLSRC_HSE:
     NR      = 2;
-    clkCalc = NUC123_HSECLK;
+    clkCalc = NUC126_HSECLK;
     break;
-  case NUC123_PLLSRC_HSI:
+  case NUC126_PLLSRC_HSI:
     NR      = 4;
     clkCalc = __HIRC;
     break;
@@ -294,7 +307,7 @@ static uint32_t enable_pll(uint32_t pllSrc, uint32_t pllFreq)
   /**
      * Loop to calculate best/lowest NR (between 0 or 2 and 31) and best/lowest NF (between 0 and 511)
      *
-     * Best results are off-by-2 until final equation calculation (to allow use in PLLCON)
+     * Best results are off-by-2 until final equation calculation (to allow use in PLLCTL)
      *
      */
   uint32_t bestNR   = 0;
@@ -338,62 +351,70 @@ static uint32_t enable_pll(uint32_t pllSrc, uint32_t pllFreq)
   }
 
   /* Enable and apply new PLL setting. */
-  CLK->PLLCON = pllSrc | (NO << 14) | ((bestNR - 2) << 9) | (bestNF - 2);
+  CLK->PLLCTL = CLK_PLLCTL(pllSrc, NO, bestNR, bestNF);
 
-  /* Wait for stable PLL clock */
-  CLK_WaitClockReady(CLK_CLKSTATUS_PLL_STB_Msk);
+  /* Wait for PLL clock stable */
+  CLK_WaitClockReady(CLK_STATUS_PLLSTB_Msk);
 
   /* Return equation result */
-  return (clkCalc / ((NO + 1) * bestNR) * bestNF);
+  return (clkCalc / (NO * bestNR) * bestNF);
 }
 
-/** @brief Set Core Clock
- *
- * @description Set the core system clock some reference speed (Hz).
- *              This should be between 25MHz and 72MHz for the NUC123SD4AN0.
- *
- *              Use either the HXT (exact) or HIRC (nearest using 22.1184MHz)
- *              as the clock source.
- *
- */
-static uint32_t set_core_clock(uint32_t clkCore)
+/**
+  * @brief      Set HCLK frequency
+  * @param[in]  u32Hclk is HCLK frequency. The range of u32Hclk is 25 MHz ~ 72 MHz.
+  * @return     HCLK frequency
+  * @details    This function is used to set HCLK frequency. The frequency unit is Hz. \n
+  *             It would configure PLL frequency to 50MHz ~ 144MHz,
+  *             set HCLK clock divider as 2 and switch HCLK clock source to PLL. \n
+  *             The register write-protection function should be disabled before using this function.
+  */
+uint32_t CLK_SetCoreClock(uint32_t u32Hclk)
 {
-  uint32_t stableHIRC;
+    uint32_t u32HIRCSTB;
 
-  /* Read HIRC clock source stable flag */
-  stableHIRC = CLK->CLKSTATUS & CLK_CLKSTATUS_OSC22M_STB_Msk;
+    /* Read HIRC clock source stable flag */
+    u32HIRCSTB = CLK->STATUS & CLK_STATUS_HIRCSTB_Msk;
 
-  /* Setup __HIRC */
-  CLK->PWRCTL |= CLK_PWRCTL_OSC22M_EN_Msk;
+    /* The range of u32Hclk is 25 MHz ~ 72 MHz */
+    if(u32Hclk > FREQ_72MHZ) {
+        u32Hclk = FREQ_72MHZ;
+    }
+    if(u32Hclk < FREQ_25MHZ) {
+        u32Hclk = FREQ_25MHZ;
+    }
 
-  CLK_WaitClockReady(CLK_CLKSTATUS_OSC22M_STB_Msk);
+    /* Setup __HIRC */
+    CLK->PWRCTL |= CLK_PWRCTL_HIRCEN_Msk;
 
-  /* Use __HIRC as HCLK temporarily */
-  CLK->CLKSEL0 |= CLK_CLKSEL0_HCLK_S_Msk;
-  CLK->CLKDIV &= (~CLK_CLKDIV_HCLK_N_Msk);
+    CLK_WaitClockReady(CLK_STATUS_HIRCSTB_Msk);
 
-  /* Is HXT stable ? */
-  if (CLK->CLKSTATUS & CLK_CLKSTATUS_XTL12M_STB_Msk) {
-    /* Use NUC123_HSECLK as PLL source */
-    clkCore = enable_pll(NUC123_PLLSRC_HSE, (2 * clkCore));
-  } else {
-    /* Use __HIRC as PLL source */
-    clkCore = enable_pll(NUC123_PLLSRC_HSI, (2 * clkCore));
+    /* Use __HIRC as HCLK temporarily */
+    CLK->CLKSEL0 |= CLK_CLKSEL0_HCLKSEL_Msk;
+    CLK->CLKDIV0 &= (~CLK_CLKDIV0_HCLKDIV_Msk);
 
-    /* Read HIRC clock source stable flag again (since we're using it now) */
-    stableHIRC = CLK->CLKSTATUS & CLK_CLKSTATUS_OSC22M_STB_Msk;
-  }
+    /* Is HXT stable ? */
+    if(CLK->STATUS & CLK_STATUS_HXTSTB_Msk) {
+        /* Use NUC126_HSECLK as PLL source */
+        u32Hclk = CLK_EnablePLL(NUC126_PLLSRC_HSE, (2 * u32Hclk));
+    } else {
+        /* Use __HIRC as PLL source */
+        u32Hclk = CLK_EnablePLL(NUC126_PLLSRC_HSI, (2 * u32Hclk));
 
-  /* Set HCLK clock source to PLL */
-  CLK_SetHCLK(NUC123_HCLKSRC_PLL_2, CLK_CLKDIV_HCLK(1));
+        /* Read HIRC clock source stable flag again (since we're using it now) */
+        u32HIRCSTB = CLK->STATUS & CLK_STATUS_HIRCSTB_Msk;
+    }
 
-  /* Disable HIRC if HIRC was disabled before we started */
-  if (stableHIRC == 0) {
-    CLK->PWRCTL &= ~CLK_PWRCTL_OSC22M_EN_Msk;
-  }
+    /* Set HCLK clock source to PLL */
+    CLK_SetHCLK(NUC126_HCLKSRC_PLL, CLK_CLKDIV0_HCLK(1));
 
-  /* Return actual HCLK frequency is PLL frequency divide 2 */
-  return (clkCore >> 1);
+    /* Disable HIRC if HIRC was disabled before we started */
+    if(u32HIRCSTB == 0) {
+        CLK->PWRCTL &= ~CLK_PWRCTL_HIRCEN_Msk;
+    }
+
+    /* Return actual HCLK frequency is PLL frequency divide 2 */
+    return u32Hclk >> 1;
 }
 #endif // NUC126_PLL_ENABLED
 
@@ -461,46 +482,47 @@ void NUC126_clock_init(void)
   /* Always initialize HSI and go from there, things can change later */
 
   /* Enable HSI */
-  /* Enable Internal RC 22.1184 MHz clock */
   CLK_EnableXtalRC(CLK_PWRCTL_HIRCEN_Msk);
-
-  /* Waiting for Internal RC clock ready */
   CLK_WaitClockReady(CLK_STATUS_HIRCSTB_Msk);
 
-  /* Switch HCLK clock source to Internal RC and HCLK source divide 1 */
+  /* Switch HCLK clock source to HSI */
   CLK_SetHCLK(NUC126_HCLKSRC_HSI, CLK_CLKDIV0_HCLK(1));
 
 #if NUC126_HSI48_ENABLED
-  /* Enable Internal RC 48MHz clock */
   CLK_EnableXtalRC(CLK_PWRCTL_HIRC48EN_Msk);
-
-  /* Waiting for Internal RC clock ready */
   CLK_WaitClockReady(CLK_STATUS_HIRC48STB_Msk);
-
-  // TODO NOT do this by default??
-  /* Switch HCLK clock source to Internal RC and HCLK source divide 1 */
-  CLK_SetHCLK(NUC126_HCLKSRC_HSI48, CLK_CLKDIV0_HCLK(1));
 #endif
 
 #if NUC126_HSE_ENABLED
-  // TODO: update clock setting
-  /* SYS->GPF_MFP |= (SYS_GPF_MFP_PF0_XT1_OUT | SYS_GPF_MFP_PF1_XT1_IN); */
-  SYS->GPF_MFP |= (SYS_GPF_MFP_GPF_MFP0_Msk | SYS_GPF_MFP_GPF_MFP1_Msk);
+  /* 
+   * Set PF[3:4] to output HSE
+   * Note: This is already set by CONFIG0[27] if NUC126_CONFIG_ENABLED is set
+   */
+  SYS->GPF_MFPL |= (SYS_GPF_MFPL_PF4MFP_Msk | SYS_GPF_MFPL_PF3MFP_Msk);
 
-  CLK->PWRCTL |= CLK_PWRCTL_XTL12M_EN_Msk;
-  CLK_WaitClockReady(CLK_CLKSTATUS_XTL12M_STB_Msk);
+  CLK_EnableXtalRC(CLK_PWRCTL_HXTEN_Msk);
+  CLK_WaitClockReady(CLK_STATUS_HXTSTB_Msk);
 #endif /* NUC126_HSE_ENABLED */
 
+#if NUC126_LSE_ENABLED
+  CLK_EnableXtalRC(CLK_PWRCTL_LXTEN_Msk);
+  CLK_WaitClockReady(CLK_STATUS_LXTSTB_Msk);
+#endif /* NUC126_LSE_ENABLED */
+
 #if NUC126_LSI_ENABLED
-  // TODO: update clock setting
-  CLK->PWRCTL |= CLK_PWRCTL_IRC10K_EN_Msk;
-  CLK_WaitClockReady(CLK_CLKSTATUS_IRC10K_STB_Msk);
+  CLK_EnableXtalRC(CLK_PWRCTL_LIRCEN_Msk);
+  CLK_WaitClockReady(CLK_STATUS_LIRCSTB_Msk);
 #endif /* NUC126_LSI_ENABLED */
 
 #if NUC126_PLL_ENABLED
-  // TODO: update clock setting
-  set_core_clock(NUC126_HCLK);
+  CLK_SetCoreClock(NUC126_HCLK);
 #endif /* NUC126_PLL_ENABLED */
+
+#if NUC126_HSI48_ENABLED
+  // TODO Better place for this?
+  /* Switch HCLK clock source to HSI48 */
+  CLK_SetHCLK(NUC126_HCLKSRC_HSI48, CLK_CLKDIV0_HCLK(1));
+#endif /* NUC126_HSI48_ENABLED */
 
   LOCKREG();
 }
