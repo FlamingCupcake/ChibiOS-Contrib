@@ -14,8 +14,10 @@
     limitations under the License.
 */
 
+// TODO double check everything for hardware details
+
 /**
- * @file    TIMv1/hal_pwm_lld.h
+ * @file    TIMv2/hal_pwm_lld.h
  * @brief   PWM subsystem low level driver header.
  *
  * @addtogroup PWM

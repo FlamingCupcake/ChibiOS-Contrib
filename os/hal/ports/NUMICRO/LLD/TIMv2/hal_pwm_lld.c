@@ -14,8 +14,10 @@
     limitations under the License.
 */
 
+// TODO double check everything for hardware details
+
 /**
- * @file    TIMv1/hal_pwm_lld.c
+ * @file    TIMv2/hal_pwm_lld.c
  * @brief   PWM subsystem low level driver header.
  *
  * @addtogroup PWM
@@ -280,7 +282,8 @@ void pwm_lld_start(PWMDriver *pwmp)
       }
     }
 
-    #if defined(NUC126xxxAEx)
+    // TODO fix this for NUC126
+    #if defined(NUC123xxxAEx)
     /* TODO: Implement PWM0 PC8 & PWM1 PB9 */
     #endif
 

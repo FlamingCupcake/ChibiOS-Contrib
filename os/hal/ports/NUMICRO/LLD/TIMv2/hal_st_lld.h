@@ -44,7 +44,7 @@
 #define CLK_CLKSEL0_STCLKSEL_HCLK_DIV2        (0x3ul<<CLK_CLKSEL0_STCLKSEL_Pos)         /*!< Set HCLK/2 as STCLK clock source */
 #define CLK_CLKSEL0_STCLKSEL_HIRC_DIV2        (0x7ul<<CLK_CLKSEL0_STCLKSEL_Pos)         /*!< Set HIRC/2 as STCLK clock source */
 
-// TODO add modes?
+// TODO: Add other timer modes
 #define TIMER_MODE_PERIODIC                  (0x01ul << TIMER_CTL_OPMODE_Pos)
 #define TIMER_MODE_CONTINUOUS                (0x03ul << TIMER_CTL_OPMODE_Pos)
 
