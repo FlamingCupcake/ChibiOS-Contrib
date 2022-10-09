@@ -518,12 +518,6 @@ void NUC126_clock_init(void)
   CLK_SetCoreClock(NUC126_HCLK);
 #endif /* NUC126_PLL_ENABLED */
 
-#if NUC126_HSI48_ENABLED
-  // TODO Better place for this?
-  /* Switch HCLK clock source to HSI48 */
-  CLK_SetHCLK(NUC126_HCLKSRC_HSI48, CLK_CLKDIV0_HCLK(1));
-#endif /* NUC126_HSI48_ENABLED */
-
   LOCKREG();
 }
 
