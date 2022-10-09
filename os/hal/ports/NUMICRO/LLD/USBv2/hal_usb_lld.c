@@ -25,38 +25,6 @@
 
 #include "hal.h"
 
-// TODO look at removing workaround code
-/*
- * TODO:
- * As it stands, the behavior of hardware endpoint 6 (which corresponds to the
- * OUT direction of logical endpoint 3) may malfunction if hardware endpoint 5
- * (the IN direction of logical endpoint 2) is in use, due to a flaw in the
- * hardware (for more info, see the errata ER_6000_NUC123AN_EN_Rev.1.04.pdf).
- *
- * The only way to ensure both hardware endpoints function properly is to set
- * them both as OUT. Under the current alternating scheme, this would be tricky.
- * However, hardware endpoint 5 is currently configured as an IN endpoint, which
- * means hardware endpoint 6 will malfunction under any circumstances (from a
- * user's perspective, this means that logical endpoint 3 cannot handle outward
- * bound traffic).
- *
- * The first step in the fix is switching the alternation pattern so that
- * hardware endpoint 5 serves as an OUT endpoint. Then, logical endpoint 3 will
- * be able to handle IN traffic, and can handle two directional traffic IF it is
- * in ISOC mode.
- *
- * Eventually, it may be the case that the alternating scheme needs to be
- * abandoned, and some more sophisticated scheme for allocating hardware
- * endpoints adopted.
- */
-/*
- * Solution to overcome the above mentioned shortcoming has been found.
- * That is to map Control-IN to endpoint 5 and Control-OUT to endpoint 6.
- * It is safe to assume interrupts for Control-IN and Control-OUT are not going
- * to occur at the same time. Because control transfers do not overwrap.
- * Other endpoints 0 1 2 3 4 and 7 can be assigned in whatever combination.
- */
-
 #if HAL_USE_USB || defined(__DOXYGEN__)
 
 /*===========================================================================*/
@@ -145,23 +113,9 @@ static uint32_t sram_free_dword_offset = 1UL;
  * @name    Endpoint number convenience macros
  * @{
  */
-#if NUC126_USB_WORKAROUND
-// As work-around we map Control-OUT to EP6 and Control-IN to EP5 .
-#define _HW_OUT_EPN(lepn)   (2 * (((lepn)+3)%4))
-#define _HW_IN_EPN(lepn)    ((2 * (((lepn)+2)%4))+1)
-#define LOGICAL_EPN(hwepn) ((((hwepn) + 3) / 2) % 4)
-#else
-#if defined(NUC126xxxxx)
-// without workaround we use EP0 EP1 EP2 EP3 EP4 and EP7 for NUC123(AN)
-#define _HW_OUT_EPN(lepn)   (2 * (lepn))
-#define _HW_IN_EPN(lepn)    (2 * (((lepn)+3)%4) + 1)
-#define LOGICAL_EPN(hwepn) (((hwepn)+1)%8 / 2)
-#else
 #define _HW_OUT_EPN(lepn)   (2 * (lepn))
 #define _HW_IN_EPN(lepn)    (2 * (lepn) + 1)
 #define LOGICAL_EPN(hwepn) ((hwepn) / 2)
-#endif
-#endif
 
 #define _HW_EP(hwepn)       ((USBD->EP) + (hwepn))
 #define HW_OUT_EP(lepn)    (_HW_EP(_HW_OUT_EPN(lepn)))
@@ -373,23 +327,12 @@ static void usb_lld_serve_interrupt(USBDriver* usbp)
       usb_serve_out_endpoint(LOGICAL_EPN(4));
     }
 
-#if NUC126_USB_WORKAROUND
-    if (intsts & USBD_INTSTS_EPEVT5_Msk) {
-      /* Clear event flag */
-      /* in NUC126(AN) EP5-IN event also false triggers EP6 */
-      USBD->INTSTS = (USBD_INTSTS_EPEVT5_Msk | USBD_INTSTS_EPEVT6_Msk);
-      usb_serve_in_endpoint(LOGICAL_EPN(5));
-      intsts &= ~USBD_INTSTS_EPEVT6_Msk;
-    }
-#else
     if (intsts & USBD_INTSTS_EPEVT5_Msk) {
       /* Clear event flag */
       USBD->INTSTS = (USBD_INTSTS_EPEVT5_Msk);
       usb_serve_in_endpoint(LOGICAL_EPN(5));
     }
-#endif
 
-#if NUC126_USB_HW_ENDPOINTS > 6
     if (intsts & USBD_INTSTS_EPEVT6_Msk) {
       /* Clear event flag */
       USBD->INTSTS = (USBD_INTSTS_EPEVT6_Msk);
@@ -401,7 +344,6 @@ static void usb_lld_serve_interrupt(USBDriver* usbp)
       USBD->INTSTS = (USBD_INTSTS_EPEVT7_Msk);
       usb_serve_in_endpoint(LOGICAL_EPN(7));
     }
-#endif
   }
 }
 
@@ -458,7 +400,6 @@ void usb_lld_start(USBDriver* usbp)
 
   if (usbp->state == USB_STOP) {
     /* Enables the peripheral.*/
-      // TODO APBCLK1??
     CLK->APBCLK0 |= CLK_APBCLK0_USBDCKEN_Msk;
 
 #if NUC126_USB_USE_USB1
@@ -469,8 +410,6 @@ void usb_lld_start(USBDriver* usbp)
   /* Configures the peripheral.*/
   /* Reset procedure enforced on driver start.*/
 
-  // TODO it's zero-indexed for some reason now, also GCR->SYS
-  //      this is probably accurate as USBDRST moved from 2 to 1
   SYS->IPRST1 |= SYS_IPRST1_USBDRST_Msk;
   for (delay = 0; delay < 0x800; ++delay)
     ;
@@ -478,17 +417,14 @@ void usb_lld_start(USBDriver* usbp)
 
   /* Post reset initialization.*/
   /* Initial USB engine */
-  // TODO find actual USB initialization code
-  // TODO PWRDN doesn't exist for some reason, what should this be?
-  USBD->ATTR = /*USBD_ATTR_PWRDN_Msk |*/ USBD_ATTR_DPPUEN_Msk |
-               USBD_ATTR_USBEN_Msk | USBD_ATTR_PHYEN_Msk;
+  USBD->ATTR = USBD_ATTR_DPPUEN_Msk | USBD_ATTR_USBEN_Msk |
+               USBD_ATTR_PHYEN_Msk;
 
   USBD->STBUFSEG = 0UL;
 
   USBD->INTSTS = USBD_INTSTS_BUSIF_Msk | USBD_INTSTS_VBDETIF_Msk |
                  USBD_INTSTS_USBIF_Msk | USBD_INTSTS_WKIDLEIF_Msk;
 
-  // TODO this has more bits now
   USBD->INTEN |= (USBD_INTEN_BUSIEN_Msk | USBD_INTEN_VBDETIEN_Msk |
                   USBD_INTEN_USBIEN_Msk | USBD_INTEN_WKIDLEIEN_Msk |
                   USBD_INTEN_WKEN_Msk);

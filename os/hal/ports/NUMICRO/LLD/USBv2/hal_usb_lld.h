@@ -36,16 +36,7 @@
  * @brief   Maximum endpoint address.
  * @details This value does not include the endpoint 0 which is always present.
 */
-// TODO look at removing workaround code
-#if defined(NUC126xxxxx)
-#if NUC126_USB_WORKAROUND
 #define USB_MAX_ENDPOINTS 3
-#else
-#define USB_MAX_ENDPOINTS 2
-#endif
-#else
-#define USB_MAX_ENDPOINTS 3
-#endif
 
 /**
  * @brief   Status stage handling method.
@@ -96,8 +87,9 @@
 /* Derived constants and error checks.                                       */
 /*===========================================================================*/
 
-// TODO this can still work if HSI48 is enabled
 #if NUC126_HSI48_ENABLED
+// TODO Implement HSI48 usage for USB
+#error "HSI48 not yet supported for use with USB"
 // Use HSI48 for USB
 #define NUC126_USBD_CLKDIV (1)
 #else
@@ -114,7 +106,6 @@
 #endif
 #endif /* NUC126_HSI48_ENABLED */
 
-// TODO how is it going to be undefined? it's set by default above
 #if !defined(NUC126_USB_USE_USB1) || (!NUC126_USB_USE_USB1)
 #error "NUC126 USB subsystem enabled, but no driver configured"
 #endif
