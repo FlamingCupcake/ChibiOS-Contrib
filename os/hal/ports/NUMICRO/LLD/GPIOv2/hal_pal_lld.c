@@ -94,7 +94,6 @@ void _pal_lld_init(void) {
 #else
 void _pal_lld_init(const PALConfig *config) {
 
-  // TODO replace with new init, new struct members
   /* (void)config; */
   /* Turn on GPIO subsystem
    * Set all GPIO to Input/HZ
