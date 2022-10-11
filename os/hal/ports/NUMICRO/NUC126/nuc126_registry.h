@@ -44,7 +44,7 @@
 #define NUC126_ADC_SUPPORTS_PRESCALER        FALSE
 #define NUC126_ADC_SUPPORTS_OVERSAMPLING     FALSE
 #define NUC126_ADC1_IRQ_SHARED_WITH_EXTI     FALSE
-// TODO Double check this
+// TODO Double check this, but it didn't change from NUC123
 #define NUC126_ADC1_HANDLER                  Vector70
 #define NUC126_ADC1_NUMBER                   Vector70_IRQn
 #define NUC126_ADC1_DMA_MSK                  (NUC126_DMA_STREAM_ID_MSK(1, 1) |\
@@ -54,8 +54,6 @@
 #define NUC126_HAS_ADC2                      FALSE
 #define NUC126_HAS_ADC3                      FALSE
 #define NUC126_HAS_ADC4                      FALSE
-
-//TODO Continue here
 
 /* CAN attributes.*/
 #define NUC126_HAS_CAN1                      FALSE
@@ -71,8 +69,9 @@
 /* DMA attributes.*/
 #define NUC126_ADVANCED_DMA                  FALSE
 #define NUC126_DMA_SUPPORTS_CSELR            FALSE
-#define NUC126_DMA1_NUM_CHANNELS             6
+#define NUC126_DMA1_NUM_CHANNELS             5
 #define NUC126_DMA2_NUM_CHANNELS             0
+// TODO Double check this, but it didn't change from NUC123
 #define NUC126_DMA1_CH1_HANDLER              Vector64
 #define NUC126_DMA1_CH23_HANDLER             Vector68
 #define NUC126_DMA1_CH4567_HANDLER           Vector6C
@@ -122,25 +121,25 @@
 #define NUC126_HAS_QUADSPI1                  FALSE
 
 /* RTC attributes.*/
-#define NUC126_HAS_RTC                       FALSE
+#define NUC126_HAS_RTC                       TRUE
 #define NUC126_RTC_HAS_SUBSECONDS            FALSE
 #define NUC126_RTC_HAS_PERIODIC_WAKEUPS      FALSE
-#define NUC126_RTC_NUM_ALARMS                0
-#define NUC126_RTC_HAS_INTERRUPTS            FALSE
+#define NUC126_RTC_NUM_ALARMS                1
+#define NUC126_RTC_HAS_INTERRUPTS            TRUE
 
 /* SDIO attributes.*/
 #define NUC126_HAS_SDIO                      FALSE
 
 /* SPI attributes.*/
 #define NUC126_HAS_SPI1                      TRUE
-#define NUC126_SPI1_SUPPORTS_I2S             FALSE
+#define NUC126_SPI1_SUPPORTS_I2S             TRUE
 #define NUC126_SPI1_RX_DMA_MSK               NUC126_DMA_STREAM_ID_MSK(1, 2)
 #define NUC126_SPI1_RX_DMA_CHN               0x00000030
 #define NUC126_SPI1_TX_DMA_MSK               NUC126_DMA_STREAM_ID_MSK(1, 3)
 #define NUC126_SPI1_TX_DMA_CHN               0x00000300
 
 #define NUC126_HAS_SPI2                      TRUE
-#define NUC126_SPI2_SUPPORTS_I2S             FALSE
+#define NUC126_SPI2_SUPPORTS_I2S             TRUE
 #define NUC126_SPI2_RX_DMA_MSK               NUC126_DMA_STREAM_ID_MSK(1, 4)
 #define NUC126_SPI2_RX_DMA_CHN               0x00003000
 #define NUC126_SPI2_TX_DMA_MSK               NUC126_DMA_STREAM_ID_MSK(1, 5)
@@ -238,7 +237,7 @@
 
 /* CRC attributes.*/
 #define NUC126_HAS_CRC                       TRUE
-#define NUC126_CRC_PROGRAMMABLE              FALSE
+#define NUC126_CRC_PROGRAMMABLE              TRUE
 
 /** @} */
 

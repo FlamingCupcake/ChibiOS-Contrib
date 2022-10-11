@@ -34,12 +34,13 @@
  * @{
  */
 
-// TODO add missing units?
+// TODO Add other units as necessary
+
 /*
  * GPIO units.
  */
 #define NUC126_GPIOAB_HANDLER        Vector50
-#define NUC126_GPIOCDF_HANDLER       Vector54
+#define NUC126_GPIOCDEF_HANDLER      Vector54
 
 #define NUC126_GPIOAB_NUMBER         GPAB_IRQn
 #define NUC126_GPIOCDEF_NUMBER       GPCDEF_IRQn
@@ -59,15 +60,12 @@
 /*
  * ADC units.
  */
-#define NUC126_ADC_HANDLER          VectorB0
+#define NUC126_ADC_HANDLER          VectorB4
 #define NUC126_ADC_NUMBER           ADC_IRQn
 
 /*
  * PWM units.
  */
-// TODO this is bad
-//#define NUC126_PWMA_HANDLER         Vector58
-//#define NUC126_PWMA_NUMBER          PWMA_IRQn
 #define NUC126_PWM0_HANDLER         Vector58
 #define NUC126_PWM1_HANDLER         Vector5C
 
@@ -77,21 +75,11 @@
 /*
  * SPI units.
  */
-// TODO remove SPI2?
 #define NUC126_SPI0_HANDLER          Vector78
 #define NUC126_SPI1_HANDLER          Vector7C
-//#define NUC126_SPI2_HANDLER          Vector80
 
 #define NUC126_SPI0_NUMBER           SPI0_IRQn
 #define NUC126_SPI1_NUMBER           SPI1_IRQn
-//#define NUC126_SPI2_NUMBER           SPI2_IRQn
-
-/*
- * I2S units.
- */
-// TODO remove I2S?
-//#define NUC126_I2S_HANDLER         VectorB8
-//#define NUC126_I2S_NUMBER          I2S_IRQn
 
 /*
  * I2C units.
